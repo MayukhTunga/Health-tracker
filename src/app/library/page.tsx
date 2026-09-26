@@ -42,8 +42,8 @@ export default function LibraryPage() {
       <div className="space-y-3 mt-4">
         {filtered.map((ex: any) => (
           <Dialog key={ex.id}>
-            <DialogTrigger asChild>
-              <Card className="bg-card border-border/50 overflow-hidden shadow-sm hover:border-primary/50 transition-colors cursor-pointer text-left">
+            <DialogTrigger className="w-full text-left focus:outline-none">
+              <Card className="bg-card border-border/50 overflow-hidden shadow-sm hover:border-primary/50 transition-colors cursor-pointer text-left w-full">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-foreground text-sm leading-tight pr-2">{ex.name}</h3>
