@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { deletePastWorkout } from "@/app/actions";
 
-export function RecentWorkoutsList({ workouts, allExercises }: { workouts: any[], allExercises: any[] }) {
+export function RecentWorkoutsList({ workouts }: { workouts: any[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const router = useRouter();
 
@@ -63,7 +63,7 @@ export function RecentWorkoutsList({ workouts, allExercises }: { workouts: any[]
                 <div className="pt-2 animate-in slide-in-from-top-2 fade-in">
                   <div className="space-y-4 mb-4">
                     {Object.entries(groupedSets).map(([exId, sets]: [string, any]) => {
-                       const exName = allExercises.find(e => e.id === exId)?.name || exId;
+                       const exName = sets[0]?.exerciseName || exId;
                        return (
                          <div key={exId} className="bg-muted/10 rounded-lg p-3 border border-border/50">
                            <p className="text-xs font-bold text-foreground mb-2 flex items-center">

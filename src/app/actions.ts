@@ -2,12 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { pullGoogleFitData, pushGoogleFitWeight } from "@/lib/google-fit";
 
 async function getUserInfo() { 
   const supabase = await createClient(); 
-  const { data: { user } } = await supabase.auth.getUser(); 
-  if (!user) throw new Error('Unauthorized'); 
-  return { supabase, userId: user.id }; 
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) throw new Error('Unauthorized'); 
+  return { supabase, userId: session.user.id, providerToken: session.provider_token }; 
+}
+
+// --- Sync ---
+export async function syncGoogleFit() {
+  const { providerToken } = await getUserInfo();
+  if (!providerToken) return { steps: 0, calories: 0 };
+  const data = await pullGoogleFitData(providerToken);
+  revalidatePath('/');
+  return data;
 }
 
 // --- Profiles ---
@@ -16,7 +26,6 @@ export async function getProfile() {
   const { data: { user } } = await supabaseServer.auth.getUser(); 
   if (!user) throw new Error('Unauthorized'); 
   const userId = user.id;
-  const { supabase } = await getUserInfo(); // Already initialized above, wait, I can just use supabaseServer
   
   const { data, error } = await supabaseServer
     .from('profiles')
@@ -33,7 +42,7 @@ export async function getProfile() {
       weight: 75,
       height: 175,
       gender: "Not Specified",
-      google_health_sync: true, // We have scopes, so default to true!
+      google_health_sync: true, 
       avatar_url: user.user_metadata.avatar_url || null
     };
     await supabaseServer.from('profiles').insert(newProfile);
@@ -60,7 +69,7 @@ export async function getProfile() {
 }
 
 export async function updateProfile(profileData: any) {
-  const { supabase, userId } = await getUserInfo();
+  const { supabase, userId, providerToken } = await getUserInfo();
 
   const mapped: any = {
     name: profileData.name,
@@ -79,6 +88,11 @@ export async function updateProfile(profileData: any) {
     .from('profiles')
     .update(mapped)
     .eq('id', userId);
+    
+  // Push weight to Google Fit if sync is enabled
+  if (profileData.googleHealthSync && profileData.weight && providerToken) {
+    await pushGoogleFitWeight(providerToken, profileData.weight);
+  }
     
   revalidatePath('/profile');
   revalidatePath('/');
@@ -193,12 +207,14 @@ export async function getWorkouts() {
   
   // Get all sets for these workouts
   const workoutIds = workouts.map(w => w.id);
-  const { data: sets } = await supabase.from('sets').select('*').in('workout_id', workoutIds).order('set_order');
+  const { data: sets } = await supabase.from('sets').select('*, exercises(name, is_unilateral)').in('workout_id', workoutIds).order('set_order');
   
   return workouts.map(w => {
     const wSets = (sets || []).filter(s => s.workout_id === w.id).map(s => ({
       id: s.id,
       exerciseId: s.exercise_id,
+      exerciseName: (s as any).exercises?.name || "Unknown Exercise",
+      isUnilateral: (s as any).exercises?.is_unilateral || false,
       weight: s.weight ? s.weight.toString() : "",
       reps: s.reps ? s.reps.toString() : "",
       completed: s.completed,
@@ -221,11 +237,13 @@ export async function getWorkoutById(workoutId: string) {
   const numId = parseInt(workoutId);
   const { data: w } = await supabase.from('workouts').select('*').eq('id', numId).eq('user_id', userId).single();
   if (!w) return null;
-  const { data: sets } = await supabase.from('sets').select('*').eq('workout_id', numId).order('set_order');
+  const { data: sets } = await supabase.from('sets').select('*, exercises(name, is_unilateral)').eq('workout_id', numId).order('set_order');
   
   const wSets = (sets || []).map(s => ({
     id: s.id,
     exerciseId: s.exercise_id,
+    exerciseName: (s as any).exercises?.name || "Unknown Exercise",
+    isUnilateral: (s as any).exercises?.is_unilateral || false,
     weight: s.weight ? s.weight.toString() : "",
     reps: s.reps ? s.reps.toString() : "",
     completed: s.completed,

@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { getWorkouts, getExercises } from "./actions";
+import { getWorkouts, syncGoogleFit } from "./actions";
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { WeeklyCalendar } from "@/components/ui/weekly-calendar";
 import { RecentWorkoutsList } from "@/components/ui/recent-workouts";
 import { Suspense } from "react";
+import { SyncButton } from "@/components/ui/sync-button";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const resolvedParams = await searchParams;
@@ -14,7 +15,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
   
   let selectedDate = new Date();
   if (dateParam) {
-    // Treat YYYY-MM-DD as local time by splitting and parsing
     const parts = dateParam.split('-');
     if (parts.length === 3) {
       selectedDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -22,8 +22,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
   }
   const selectedDateString = selectedDate.toDateString();
 
-  const allWorkouts = await getWorkouts();
-  const allExercises = await getExercises();
+  // Parallel fetching! getWorkouts uses a JOIN now, so it's super fast.
+  const [allWorkouts, fitData] = await Promise.all([
+    getWorkouts(),
+    syncGoogleFit()
+  ]);
   
   const todaysWorkouts = allWorkouts.filter((w: any) => new Date(w.date).toDateString() === selectedDateString);
 
@@ -40,16 +43,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
   // Calculate Effort Points dynamically
   let effortPoints = 0;
   if (todaysWorkouts.length > 0) {
-    // 200 base + 1 pt per 10kg + 10 pts per set + 2 pts per minute
     effortPoints = 200 + Math.floor(totalVolume / 10) + (totalSets * 10) + Math.floor(totalDuration / 60) * 2;
   }
   
-  // Mock steps deterministically based on date string so it changes when clicking days
-  const seed = Array.from(selectedDateString).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  // Add some steps for workouts done
-  const workoutSteps = todaysWorkouts.length > 0 ? 3000 : 0;
-  const mockSteps = 4000 + (seed * 17 % 6000) + workoutSteps; 
-  const mockCalories = 1800 + (seed * 11 % 800) + (effortPoints);
+  // Real data from Google Fit!
+  // If it's today, show live sync data. If it's a past date, we don't have historical fit data implemented, so fallback to 0.
+  const isToday = selectedDateString === new Date().toDateString();
+  const steps = isToday ? fitData.steps : 0;
+  const calories = isToday ? fitData.calories : 0;
   
   const effortGoal = 1000;
   
@@ -64,7 +65,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
       <div className="container mx-auto px-4 space-y-8">
         
         {/* Effort / Heart Points Tracker */}
-        <section className="flex flex-col items-center justify-center pt-2">
+        <section className="flex flex-col items-center justify-center pt-2 relative">
           <CircularProgress value={effortPoints} max={effortGoal} size={180} strokeWidth={16}>
             <span className="text-4xl font-black text-foreground">{effortPoints}</span>
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Effort Pts</span>
@@ -78,17 +79,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
         </section>
 
         {/* Steps & Calories */}
-        <section className="grid grid-cols-2 gap-4">
+        <section className="grid grid-cols-2 gap-4 relative">
+          {isToday && (
+            <div className="absolute -top-10 right-0">
+               <SyncButton />
+            </div>
+          )}
           <Card className="bg-card border-border/50">
             <CardContent className="p-4 flex flex-col justify-center h-full">
               <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase mb-1">Steps</span>
-              <span className="text-2xl font-black text-foreground">{mockSteps.toLocaleString()}</span>
+              <span className="text-2xl font-black text-foreground">{steps.toLocaleString()}</span>
             </CardContent>
           </Card>
           <Card className="bg-card border-border/50">
             <CardContent className="p-4 flex flex-col justify-center h-full">
               <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase mb-1">Calories</span>
-              <span className="text-2xl font-black text-foreground">{mockCalories.toLocaleString()}</span>
+              <span className="text-2xl font-black text-foreground">{calories.toLocaleString()}</span>
             </CardContent>
           </Card>
         </section>
@@ -105,8 +111,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
 
         {/* Recent Workouts */}
         <section>
-          <h2 className="text-lg font-bold tracking-tight text-foreground/90 mb-4 uppercase">{selectedDateString === new Date().toDateString() ? "Today's Workouts" : "Workouts on this Date"}</h2>
-          <RecentWorkoutsList workouts={todaysWorkouts} allExercises={allExercises} />
+          <h2 className="text-lg font-bold tracking-tight text-foreground/90 mb-4 uppercase">{isToday ? "Today's Workouts" : "Workouts on this Date"}</h2>
+          <RecentWorkoutsList workouts={todaysWorkouts} />
         </section>
       </div>
     </div>
