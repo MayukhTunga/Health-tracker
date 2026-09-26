@@ -21,7 +21,7 @@ async function getUserInfo() {
 // --- Sync ---
 export async function getGoogleFitData() {
   const { providerToken } = await getUserInfo();
-  if (!providerToken) return { steps: 0, calories: 0 };
+  if (!providerToken) return { steps: 0, calories: 0, rawDebug: 'providerToken is empty! The Google token was not found in the cookie.' };
   return await pullGoogleFitData(providerToken);
 }
 

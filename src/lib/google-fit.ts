@@ -25,8 +25,9 @@ export async function pullGoogleFitData(providerToken: string) {
     });
 
     if (!response.ok) {
-      console.error('Failed to fetch from Google Fit:', await response.text());
-      return { steps: 0, calories: 0 };
+      const errText = await response.text();
+      console.error('Failed to fetch from Google Fit:', errText);
+      return { steps: 0, calories: 0, rawDebug: 'Failed: ' + response.status + ' ' + errText };
     }
 
     const data = await response.json();
@@ -55,10 +56,10 @@ export async function pullGoogleFitData(providerToken: string) {
 
     calories = Math.round(calories);
 
-    return { steps, calories };
+    return { steps, calories, rawDebug: 'Success JSON: ' + JSON.stringify(data) };
   } catch (err) {
-    console.error('Error in Google Fit sync:', err);
-    return { steps: 0, calories: 0 };
+    return { steps: 0, calories: 0, rawDebug: 'Exception: ' + err.message };
+    return { steps: 0, calories: 0, rawDebug: 'Failed: ' + (await response.text()) };
   }
 }
 
@@ -104,3 +105,4 @@ export async function pushGoogleFitWeight(providerToken: string, weightKg: numbe
     console.error('Failed to push weight', err);
   }
 }
+

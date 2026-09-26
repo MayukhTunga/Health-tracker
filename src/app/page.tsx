@@ -99,6 +99,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
           </Card>
         </section>
 
+        {isToday && (fitData as any).rawDebug && (
+          <section className="bg-red-950/30 border border-red-500/50 p-4 rounded-lg overflow-hidden">
+            <h3 className="text-red-500 font-bold text-xs uppercase mb-2">API Debug Output</h3>
+            <pre className="text-[10px] text-red-200 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">
+              {(fitData as any).rawDebug}
+            </pre>
+          </section>
+        )}
+
         {/* Start Workout Action */}
         <section>
           <Link href="/workouts">
