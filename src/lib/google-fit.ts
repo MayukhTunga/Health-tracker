@@ -9,9 +9,10 @@ export async function pullGoogleFitData(providerToken: string) {
   const midnightStr = `${dateObj.year}-${dateObj.month}-${dateObj.day}T00:00:00+05:30`;
   
   const startTimeMillis = new Date(midnightStr).getTime();
-  // Google Fit bucketByTime: { durationMillis: 86400000 } requires the window to be exactly 24 hours long 
-  // or else it might drop the bucket entirely if it's incomplete!
-  const endTimeMillis = startTimeMillis + 86400000;
+  const endTimeMillis = Date.now();
+  // Google Fit throws 400 if endTimeMillis is in the future. 
+  // To get a single bucket from midnight to now, durationMillis must equal the delta!
+  const durationMillis = Math.max(1, endTimeMillis - startTimeMillis);
 
   try {
     const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
@@ -28,7 +29,7 @@ export async function pullGoogleFitData(providerToken: string) {
           },
           { dataTypeName: 'com.google.calories.expended' }
         ],
-        bucketByTime: { durationMillis: 86400000 },
+        bucketByTime: { durationMillis },
         startTimeMillis,
         endTimeMillis
       }),
@@ -128,8 +129,14 @@ export async function pullGoogleFitBodyMetrics(providerToken: string) {
       },
       body: JSON.stringify({
         aggregateBy: [
-          { dataTypeName: 'com.google.weight.summary' },
-          { dataTypeName: 'com.google.height.summary' }
+          { 
+            dataTypeName: 'com.google.weight',
+            dataSourceId: 'derived:com.google.weight:com.google.android.gms:merge_weight'
+          },
+          { 
+            dataTypeName: 'com.google.height',
+            dataSourceId: 'derived:com.google.height:com.google.android.gms:merge_height'
+          }
         ],
         bucketByTime: { durationMillis: (30 * 24 * 60 * 60 * 1000) },
         startTimeMillis,

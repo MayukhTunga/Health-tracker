@@ -3,7 +3,7 @@ const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', d
 const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
 const dateObj = {};
 parts.forEach(p => dateObj[p.type] = p.value);
-const midnightStr = ${dateObj.year}--T00:00:00+05:30;
-const startTimeMillis = new Date(midnightStr).getTime();
+const midnightStr = dateObj.year + '-' + dateObj.month + '-' + dateObj.day + 'T00:00:00+05:30';
 console.log('midnightStr:', midnightStr);
-console.log('startTimeMillis:', startTimeMillis);
+const ms = new Date(midnightStr).getTime();
+console.log('ms:', ms);
