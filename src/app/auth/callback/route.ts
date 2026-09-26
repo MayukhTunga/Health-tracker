@@ -24,9 +24,12 @@ export async function GET(request: Request) {
         })
       }
       return NextResponse.redirect(`${origin}${next}`)
+    } else {
+      // Pass the explicit error message to the login page for debugging
+      return NextResponse.redirect(`${origin}/login?error=true&message=${encodeURIComponent(error.message)}`)
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=true`)
+  return NextResponse.redirect(`${origin}/login?error=no_code`)
 }

@@ -3,10 +3,13 @@
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Activity } from "lucide-react";
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const errorMessage = searchParams.get('message');
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -25,22 +28,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm space-y-8 text-center">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
-            <Activity className="w-8 h-8 text-primary" />
-          </div>
+    <div className="w-full max-w-sm space-y-8 text-center">
+      <div className="flex justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
+          <Activity className="w-8 h-8 text-primary" />
         </div>
-        
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Health Tracker</h1>
-          <p className="text-muted-foreground">Sign in to sync your fitness data</p>
-        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">Health Tracker</h1>
+        <p className="text-muted-foreground">Sign in to sync your fitness data</p>
+      </div>
 
-        <Button 
-          onClick={handleGoogleLogin} 
-          disabled={loading}
+      {errorMessage && (
+        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg">
+          {decodeURIComponent(errorMessage)}
+        </div>
+      )}
+
+      <Button 
+        onClick={handleGoogleLogin} 
+        disabled={loading}
           className="w-full h-12 text-base font-semibold bg-white text-black hover:bg-gray-100 flex items-center justify-center gap-3"
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
@@ -53,6 +61,16 @@ export default function LoginPage() {
           {loading ? "Connecting..." : "Continue with Google"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+      <Suspense fallback={<div className="text-muted-foreground">Loading...</div>}>
+        <LoginContent />
+      </Suspense>
     </div>
   );
 }
