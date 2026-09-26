@@ -29,6 +29,13 @@ export async function getGoogleFitData() {
   return await pullGoogleFitData(providerToken);
 }
 
+export async function getGoogleFitBodyMetrics() {
+  const { providerToken } = await getUserInfo();
+  if (!providerToken) return { weight: null, height: null, rawDebug: 'providerToken is empty! The Google token was not found in the cookie.' };
+  const { pullGoogleFitBodyMetrics } = await import('@/lib/google-fit');
+  return await pullGoogleFitBodyMetrics(providerToken);
+}
+
 export async function forceSyncGoogleFit() {
   const { supabase, userId, providerToken } = await getUserInfo();
   

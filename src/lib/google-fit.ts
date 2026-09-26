@@ -138,8 +138,9 @@ export async function pullGoogleFitBodyMetrics(providerToken: string) {
     });
 
     if (!response.ok) {
-      console.error('Failed to pull body metrics:', await response.text());
-      return { weight: null, height: null };
+      const text = await response.text();
+      console.error('Failed to pull body metrics:', text);
+      return { weight: null, height: null, rawDebug: 'Failed: ' + response.status + ' ' + text };
     }
 
     const data = await response.json();
@@ -168,9 +169,9 @@ export async function pullGoogleFitBodyMetrics(providerToken: string) {
     if (weight) weight = Math.round(weight * 10) / 10;
     if (height) height = Math.round(height);
 
-    return { weight, height };
-  } catch (err) {
+    return { weight, height, rawDebug: 'Success JSON: ' + JSON.stringify(data, null, 2) };
+  } catch (err: any) {
     console.error('Error pulling body metrics:', err);
-    return { weight: null, height: null };
+    return { weight: null, height: null, rawDebug: 'Exception: ' + err?.message };
   }
 }

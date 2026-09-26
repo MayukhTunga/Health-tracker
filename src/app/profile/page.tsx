@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { getProfile, updateProfile } from "../actions";
+import { getProfile, updateProfile, getGoogleFitBodyMetrics } from "../actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,14 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
+  const [debugData, setDebugData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getProfile().then(setProfile);
+    getGoogleFitBodyMetrics().then(setDebugData);
   }, []);
 
   const handleSave = async () => {
@@ -180,6 +182,15 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      {debugData?.rawDebug && (
+        <section className="bg-red-950/30 border border-red-500/50 p-4 rounded-lg overflow-hidden mt-4">
+          <h3 className="text-red-500 font-bold text-xs uppercase mb-2">API Debug Output (Body Metrics)</h3>
+          <pre className="text-[10px] text-red-200 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">
+            {debugData.rawDebug}
+          </pre>
+        </section>
+      )}
 
       <div className="pt-8 flex justify-center">
         <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={handleSignOut}>
