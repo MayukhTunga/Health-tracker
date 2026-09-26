@@ -12,7 +12,7 @@ export async function pullGoogleFitData(providerToken: string) {
       },
       body: JSON.stringify({
         aggregateBy: [
-          { dataTypeName: 'com.google.step_count.delta', dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps' },
+          { dataTypeName: 'com.google.step_count.delta' },
           { dataTypeName: 'com.google.calories.expended' }
         ],
         bucketByTime: { durationMillis: 86400000 },
@@ -27,6 +27,8 @@ export async function pullGoogleFitData(providerToken: string) {
     }
 
     const data = await response.json();
+    console.log("Google Fit Data:", JSON.stringify(data, null, 2));
+
     let steps = 0;
     let calories = 0;
 
