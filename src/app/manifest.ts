@@ -7,19 +7,25 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Track your workouts and sync with Google Health',
     start_url: '/',
     display: 'standalone',
-    background_color: '#000000',
+    background_color: '#09090b',
     theme_color: '#22c55e',
     icons: [
       {
-        src: '/icon.jpg',
-        sizes: 'any',
-        type: 'image/jpeg',
+        src: '/icon',
+        sizes: '192x192',
+        type: 'image/png',
       },
       {
-        src: '/apple-icon.jpg',
-        sizes: '180x180',
-        type: 'image/jpeg',
+        src: '/icon',
+        sizes: '512x512',
+        type: 'image/png',
       },
+      {
+        src: '/icon',
+        sizes: 'any',
+        type: 'image/png',
+        purpose: 'maskable'
+      }
     ],
   }
 }
