@@ -40,17 +40,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
      totalSets += w.sets ? w.sets.length : 0;
   });
 
-  // Calculate Effort Points dynamically
-  let effortPoints = 0;
-  if (todaysWorkouts.length > 0) {
-    effortPoints = 200 + Math.floor(totalVolume / 10) + (totalSets * 10) + Math.floor(totalDuration / 60) * 2;
-  }
-  
   // Real data from Google Fit!
   // If it's today, show live sync data. If it's a past date, we don't have historical fit data implemented, so fallback to 0.
   const isToday = selectedDateString === new Date().toDateString();
   const steps = isToday ? fitData.steps : 0;
   const calories = isToday ? fitData.calories : 0;
+
+  // Calculate Effort Points dynamically (Workouts + Steps)
+  let effortPoints = 0;
+  
+  // Points from Workouts
+  if (todaysWorkouts.length > 0) {
+    effortPoints += 200 + Math.floor(totalVolume / 10) + (totalSets * 10) + Math.floor(totalDuration / 60) * 2;
+  }
+  
+  // Points from Steps (1 point per 10 steps)
+  effortPoints += Math.floor(steps / 10);
   
   const effortGoal = 1000;
   
@@ -79,34 +84,28 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
         </section>
 
         {/* Steps & Calories */}
-        <section className="grid grid-cols-2 gap-4 relative">
+        <section className="flex flex-col gap-3">
           {isToday && (
-            <div className="absolute -top-10 right-0">
-               <SyncButton />
+            <div className="flex justify-between items-center px-1">
+              <h3 className="text-sm font-bold text-foreground tracking-tight uppercase">Daily Activity</h3>
+              <SyncButton />
             </div>
           )}
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-4 flex flex-col justify-center h-full">
-              <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase mb-1">Steps</span>
-              <span className="text-2xl font-black text-foreground">{steps.toLocaleString()}</span>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-4 flex flex-col justify-center h-full">
-              <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase mb-1">Calories</span>
-              <span className="text-2xl font-black text-foreground">{calories.toLocaleString()}</span>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="bg-card border-border/50">
+              <CardContent className="p-4 flex flex-col justify-center h-full">
+                <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase mb-1">Steps</span>
+                <span className="text-2xl font-black text-foreground">{steps.toLocaleString()}</span>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border/50">
+              <CardContent className="p-4 flex flex-col justify-center h-full">
+                <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase mb-1">Calories</span>
+                <span className="text-2xl font-black text-foreground">{calories.toLocaleString()}</span>
+              </CardContent>
+            </Card>
+          </div>
         </section>
-
-        {isToday && (fitData as any).rawDebug && (
-          <section className="bg-red-950/30 border border-red-500/50 p-4 rounded-lg overflow-hidden">
-            <h3 className="text-red-500 font-bold text-xs uppercase mb-2">API Debug Output</h3>
-            <pre className="text-[10px] text-red-200 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">
-              {(fitData as any).rawDebug}
-            </pre>
-          </section>
-        )}
 
         {/* Start Workout Action */}
         <section>
