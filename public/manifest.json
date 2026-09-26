@@ -1,0 +1,17 @@
+{
+  "name": "GymTracker",
+  "short_name": "GymTracker",
+  "description": "Track your workouts and sync with Google Health",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
