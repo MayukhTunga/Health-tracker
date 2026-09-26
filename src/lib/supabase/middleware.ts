@@ -42,14 +42,18 @@ export async function updateSession(request: NextRequest) {
     url.pathname = '/login'
     url.searchParams.set('reason', 'middleware_no_user')
     url.searchParams.set('from', request.nextUrl.pathname)
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    response.headers.set('Cache-Control', 'no-store, max-age=0')
+    return response
   }
   
   if (user && isPublicRoute && request.nextUrl.pathname === '/login') {
     // user is already logged in, redirect away from login page
     const url = request.nextUrl.clone()
     url.pathname = '/'
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    response.headers.set('Cache-Control', 'no-store, max-age=0')
+    return response
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

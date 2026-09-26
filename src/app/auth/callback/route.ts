@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const response = NextResponse.redirect(`${origin}${next}`)
+    response.headers.set('Cache-Control', 'no-store, max-age=0')
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
