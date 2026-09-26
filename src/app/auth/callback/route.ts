@@ -1,35 +1,48 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
+import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
-    const supabase = await createClient()
+    const response = NextResponse.redirect(`${origin}${next}`)
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
+
     const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Supabase's getSession() doesn't persist the Google provider_token, so we save it in a secure cookie
       if (session?.provider_token) {
-        const cookieStore = await cookies()
-        cookieStore.set('google_provider_token', session.provider_token, { 
+        response.cookies.set('google_provider_token', session.provider_token, { 
           httpOnly: true, 
           secure: process.env.NODE_ENV === 'production',
           maxAge: 3500, // Google tokens expire in 1 hr
           path: '/'
         })
       }
-      return NextResponse.redirect(`${origin}${next}`)
+      return response
     } else {
-      // Pass the explicit error message to the login page for debugging
       return NextResponse.redirect(`${origin}/login?error=true&message=${encodeURIComponent(error.message)}`)
     }
   }
 
-  // return the user to an error page with instructions
   return NextResponse.redirect(`${origin}/login?error=no_code`)
 }
