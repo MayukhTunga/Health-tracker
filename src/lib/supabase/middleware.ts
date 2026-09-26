@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isPublicRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/auth/callback')
+  const isPublicRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/auth/callback') || request.nextUrl.pathname.startsWith('/manifest') || request.nextUrl.pathname.startsWith('/sw.js')
   
   if (!user && !isPublicRoute) {
     // no user, potentially respond by redirecting the user to the login page
@@ -59,3 +59,5 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   return supabaseResponse
 }
+
+
