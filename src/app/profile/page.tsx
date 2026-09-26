@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { User, Activity, Dumbbell, Save, LogOut, Camera } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
+import { SyncButton } from "@/components/ui/sync-button";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
@@ -164,7 +165,10 @@ export default function ProfilePage() {
       </Card>
 
       <div className="pt-4">
-        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-1">Integrations</h3>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Integrations</h3>
+          <SyncButton />
+        </div>
         <Card className="bg-card border-border/50 overflow-hidden">
           <CardContent className="p-0">
             <div className="p-4 flex items-center justify-between">

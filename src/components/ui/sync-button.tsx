@@ -12,6 +12,7 @@ export function SyncButton() {
     setIsSyncing(true);
     await forceSyncGoogleFit();
     setIsSyncing(false);
+    window.location.reload();
   };
 
   return (
