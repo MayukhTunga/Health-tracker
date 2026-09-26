@@ -12,7 +12,10 @@ export async function pullGoogleFitData(providerToken: string) {
       },
       body: JSON.stringify({
         aggregateBy: [
-          { dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps' },
+          { 
+            dataTypeName: 'com.google.step_count.delta',
+            dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps' 
+          },
           { dataTypeName: 'com.google.calories.expended' }
         ],
         bucketByTime: { durationMillis: 86400000 },
