@@ -16,6 +16,10 @@ export default function LoginPage() {
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
         scopes: 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/fitness.body.write',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       },
     });
   };
