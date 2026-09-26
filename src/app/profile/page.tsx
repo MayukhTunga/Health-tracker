@@ -37,8 +37,8 @@ export default function ProfilePage() {
       if (!event.target.files || event.target.files.length === 0) return;
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = \\.\\;
-      const filePath = \\\;
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
       
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
