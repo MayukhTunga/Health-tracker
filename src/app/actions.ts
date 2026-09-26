@@ -1,19 +1,52 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
-const DUMMY_USER_ID = '00000000-0000-0000-0000-000000000000';
+async function getUserInfo() { 
+  const supabase = await createClient(); 
+  const { data: { user } } = await supabase.auth.getUser(); 
+  if (!user) throw new Error('Unauthorized'); 
+  return { supabase, userId: user.id }; 
+}
 
 // --- Profiles ---
 export async function getProfile() {
-  const { data, error } = await supabase
+  const supabaseServer = await createClient(); 
+  const { data: { user } } = await supabaseServer.auth.getUser(); 
+  if (!user) throw new Error('Unauthorized'); 
+  const userId = user.id;
+  const { supabase } = await getUserInfo(); // Already initialized above, wait, I can just use supabaseServer
+  
+  const { data, error } = await supabaseServer
     .from('profiles')
     .select('*')
-    .eq('id', DUMMY_USER_ID)
+    .eq('id', userId)
     .single();
     
-  if (error || !data) return null;
+  if (error || !data) {
+    // Create the profile since it doesn't exist
+    const newProfile = {
+      id: userId,
+      name: user.user_metadata.full_name || "New User",
+      age: 25,
+      weight: 75,
+      height: 175,
+      gender: "Not Specified",
+      google_health_sync: true, // We have scopes, so default to true!
+      avatar_url: user.user_metadata.avatar_url || null
+    };
+    await supabaseServer.from('profiles').insert(newProfile);
+    return {
+      name: newProfile.name,
+      age: newProfile.age,
+      weight: newProfile.weight,
+      height: newProfile.height,
+      gender: newProfile.gender,
+      googleHealthSync: newProfile.google_health_sync,
+      avatarUrl: newProfile.avatar_url
+    };
+  }
   
   return {
     name: data.name,
@@ -21,12 +54,15 @@ export async function getProfile() {
     weight: data.weight,
     height: data.height,
     gender: data.gender,
-    googleHealthSync: data.google_health_sync
+    googleHealthSync: data.google_health_sync,
+    avatarUrl: data.avatar_url
   };
 }
 
 export async function updateProfile(profileData: any) {
-  const mapped = {
+  const { supabase, userId } = await getUserInfo();
+
+  const mapped: any = {
     name: profileData.name,
     age: profileData.age,
     weight: profileData.weight,
@@ -35,10 +71,14 @@ export async function updateProfile(profileData: any) {
     google_health_sync: profileData.googleHealthSync
   };
   
+  if (profileData.avatarUrl !== undefined) {
+    mapped.avatar_url = profileData.avatarUrl;
+  }
+  
   await supabase
     .from('profiles')
     .update(mapped)
-    .eq('id', DUMMY_USER_ID);
+    .eq('id', userId);
     
   revalidatePath('/profile');
   revalidatePath('/');
@@ -46,7 +86,10 @@ export async function updateProfile(profileData: any) {
 }
 
 // --- Exercises ---
+// Anyone can get exercises, but we still use server client
 export async function getExercises(query?: string, muscleGroup?: string) {
+  const supabase = await createClient(); 
+  
   let req = supabase.from('exercises').select('*');
   
   if (muscleGroup && muscleGroup !== "All") {
@@ -70,7 +113,8 @@ export async function getExercises(query?: string, muscleGroup?: string) {
 
 // --- Templates ---
 export async function getTemplates() {
-  const { data: templates } = await supabase.from('templates').select('*').eq('user_id', DUMMY_USER_ID);
+  const { supabase, userId } = await getUserInfo();
+  const { data: templates } = await supabase.from('templates').select('*').eq('user_id', userId);
   const { data: tEx } = await supabase.from('template_exercises').select('*, exercises(*)').order('order_index');
   
   if (!templates) return [];
@@ -92,10 +136,11 @@ export async function getTemplates() {
 }
 
 export async function saveTemplate(template: any) {
+  const { supabase, userId } = await getUserInfo();
   const tId = template.id || Date.now();
   await supabase.from('templates').insert({
     id: tId,
-    user_id: DUMMY_USER_ID,
+    user_id: userId,
     name: template.name,
     desc_text: template.desc
   });
@@ -113,10 +158,11 @@ export async function saveTemplate(template: any) {
 }
 
 export async function updateTemplate(template: any) {
+  const { supabase, userId } = await getUserInfo();
   await supabase.from('templates').update({
     name: template.name,
     desc_text: template.desc
-  }).eq('id', template.id);
+  }).eq('id', template.id).eq('user_id', userId);
   
   await supabase.from('template_exercises').delete().eq('template_id', template.id);
   
@@ -133,16 +179,21 @@ export async function updateTemplate(template: any) {
 }
 
 export async function deleteTemplate(templateId: number) {
-  await supabase.from('templates').delete().eq('id', templateId);
+  const { supabase, userId } = await getUserInfo();
+  await supabase.from('templates').delete().eq('id', templateId).eq('user_id', userId);
   revalidatePath('/workouts');
 }
 
 // --- Workouts ---
 export async function getWorkouts() {
-  const { data: workouts } = await supabase.from('workouts').select('*').eq('user_id', DUMMY_USER_ID).order('date', { ascending: false });
-  const { data: sets } = await supabase.from('sets').select('*').order('set_order');
+  const { supabase, userId } = await getUserInfo();
+  const { data: workouts } = await supabase.from('workouts').select('*').eq('user_id', userId).order('date', { ascending: false });
   
-  if (!workouts) return [];
+  if (!workouts || workouts.length === 0) return [];
+  
+  // Get all sets for these workouts
+  const workoutIds = workouts.map(w => w.id);
+  const { data: sets } = await supabase.from('sets').select('*').in('workout_id', workoutIds).order('set_order');
   
   return workouts.map(w => {
     const wSets = (sets || []).filter(s => s.workout_id === w.id).map(s => ({
@@ -166,8 +217,9 @@ export async function getWorkouts() {
 }
 
 export async function getWorkoutById(workoutId: string) {
+  const { supabase, userId } = await getUserInfo();
   const numId = parseInt(workoutId);
-  const { data: w } = await supabase.from('workouts').select('*').eq('id', numId).single();
+  const { data: w } = await supabase.from('workouts').select('*').eq('id', numId).eq('user_id', userId).single();
   if (!w) return null;
   const { data: sets } = await supabase.from('sets').select('*').eq('workout_id', numId).order('set_order');
   
@@ -191,10 +243,11 @@ export async function getWorkoutById(workoutId: string) {
 }
 
 export async function saveWorkout(workout: any) {
+  const { supabase, userId } = await getUserInfo();
   const wId = workout.id ? parseInt(workout.id) : Date.now();
   await supabase.from('workouts').insert({
     id: wId,
-    user_id: DUMMY_USER_ID,
+    user_id: userId,
     template_id: workout.templateId || null,
     name: workout.name,
     date: workout.date || new Date().toISOString(),
@@ -219,12 +272,13 @@ export async function saveWorkout(workout: any) {
 }
 
 export async function updatePastWorkout(workout: any) {
+  const { supabase, userId } = await getUserInfo();
   const wId = parseInt(workout.id);
   await supabase.from('workouts').update({
     name: workout.name,
     duration: workout.duration || 0,
     volume: workout.volume || 0
-  }).eq('id', wId);
+  }).eq('id', wId).eq('user_id', userId);
   
   await supabase.from('sets').delete().eq('workout_id', wId);
   
@@ -245,14 +299,16 @@ export async function updatePastWorkout(workout: any) {
 }
 
 export async function deletePastWorkout(workoutId: string) {
-  await supabase.from('workouts').delete().eq('id', parseInt(workoutId));
+  const { supabase, userId } = await getUserInfo();
+  await supabase.from('workouts').delete().eq('id', parseInt(workoutId)).eq('user_id', userId);
   revalidatePath('/');
   revalidatePath('/workouts');
 }
 
 // --- History ---
 export async function getRoutineHistory(templateId: number) {
-  const { data: workouts } = await supabase.from('workouts').select('*').eq('template_id', templateId).order('date', { ascending: true });
+  const { supabase, userId } = await getUserInfo();
+  const { data: workouts } = await supabase.from('workouts').select('*').eq('template_id', templateId).eq('user_id', userId).order('date', { ascending: true });
   return (workouts || []).map(w => ({
     id: w.id.toString(),
     templateId: w.template_id,
@@ -264,7 +320,15 @@ export async function getRoutineHistory(templateId: number) {
 }
 
 export async function getExerciseHistory(exerciseId: string) {
-  const { data: sets } = await supabase.from('sets').select('*, workouts(*)').eq('exercise_id', exerciseId);
+  const { supabase, userId } = await getUserInfo();
+  
+  // Need to only get sets that belong to workouts owned by this user
+  // We can join with workouts to filter by user_id
+  const { data: sets } = await supabase
+    .from('sets')
+    .select('*, workouts!inner(*)')
+    .eq('exercise_id', exerciseId)
+    .eq('workouts.user_id', userId);
   
   if (!sets) return [];
   

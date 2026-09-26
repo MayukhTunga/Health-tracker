@@ -11,19 +11,35 @@ export const metadata: Metadata = {
   description: "Track your workouts and sync with Google Health",
 };
 
-export default function RootLayout({
+import { createClient } from "@/lib/supabase/server";
+import { getProfile } from "@/app/actions";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  let avatarUrl = null;
+  if (user) {
+    try {
+      const profile = await getProfile();
+      avatarUrl = profile?.avatarUrl;
+    } catch (e) {
+      // Ignored
+    }
+  }
+
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-background antialiased flex flex-col`} suppressHydrationWarning>
-        <TopHeader />
+        {user && <TopHeader avatarUrl={avatarUrl} />}
         <main className="flex-1 pb-16 sm:pb-0">
           {children}
         </main>
-        <MobileNav />
+        {user && <MobileNav />}
       </body>
     </html>
   );

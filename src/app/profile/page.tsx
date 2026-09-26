@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { getProfile, updateProfile } from "../actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { User, Activity, Dumbbell, Save, LogIn } from "lucide-react";
-import Link from "next/link";
+import { User, Activity, Dumbbell, Save, LogOut, Camera } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getProfile().then(setProfile);
@@ -24,139 +25,168 @@ export default function ProfilePage() {
     setIsSaving(false);
   };
 
-  const handleGoogleHealthToggle = async (checked: boolean) => {
-    setProfile({ ...profile, googleHealthSync: checked });
-    // In a real app, if checked is true, this would open an OAuth popup or redirect to Google login.
-    // For this prototype, we'll simulate a 1-second OAuth redirect delay.
-    if (checked) {
-      setIsSyncing(true);
-      setTimeout(async () => {
-        await updateProfile({ googleHealthSync: true });
-        setIsSyncing(false);
-      }, 1000);
-    } else {
-      await updateProfile({ googleHealthSync: false });
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploadingImage(true);
+      if (!event.target.files || event.target.files.length === 0) return;
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = \\.\\;
+      const filePath = \\\;
+      
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+        
+      if (uploadError) throw uploadError;
+      
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      const newProfile = { ...profile, avatarUrl: data.publicUrl };
+      setProfile(newProfile);
+      await updateProfile(newProfile);
+    } catch (error) {
+      alert("Error uploading avatar!");
+      console.error(error);
+    } finally {
+      setUploadingImage(false);
     }
   };
 
-  if (!profile) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Profile...</div>;
-  }
+  if (!profile) return null;
 
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 space-y-6">
       
-      {/* Header */}
-      <div className="flex flex-col items-center justify-center space-y-3 mb-8">
-        <div className="w-24 h-24 rounded-full bg-muted border-4 border-card shadow-lg flex items-center justify-center overflow-hidden">
-           <User className="w-12 h-12 text-muted-foreground/50" />
+      {/* Profile Header & Avatar */}
+      <div className="flex flex-col items-center space-y-4 pt-4 pb-6">
+        <div 
+          className="relative w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-primary/20 cursor-pointer group"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {profile.avatarUrl ? (
+            <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
+          ) : (
+            <User className="w-10 h-10 text-muted-foreground group-hover:opacity-50 transition-opacity" />
+          )}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Camera className="w-6 h-6 text-white drop-shadow-md" />
+          </div>
+          {uploadingImage && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+               <span className="text-xs text-white">Uploading...</span>
+            </div>
+          )}
         </div>
-        <div className="text-center">
-           <h1 className="text-2xl font-black uppercase tracking-tight">{profile.name}</h1>
-           <p className="text-sm font-medium text-primary uppercase tracking-wider">Athlete Profile</p>
-        </div>
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          onChange={handleAvatarUpload} 
+        />
+        <h2 className="text-2xl font-bold">{profile.name}</h2>
       </div>
 
-      {/* Stats Card */}
-      <Card className="bg-card border-border/50 shadow-sm">
-        <CardContent className="p-5">
-           <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center">
-                 <User className="w-4 h-4 mr-2" /> Personal Data
-              </h2>
-           </div>
-           
-           <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Name</label>
-                 <Input 
-                   value={profile.name} 
-                   onChange={(e) => setProfile({...profile, name: e.target.value})} 
-                   className="bg-muted/30 border-border/50 font-medium"
-                 />
-              </div>
-              <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Age</label>
-                 <Input 
-                   type="number"
-                   value={profile.age} 
-                   onChange={(e) => setProfile({...profile, age: Number(e.target.value)})} 
-                   className="bg-muted/30 border-border/50 font-medium"
-                 />
-              </div>
-              <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Weight (kg)</label>
-                 <Input 
-                   type="number"
-                   value={profile.weight} 
-                   onChange={(e) => setProfile({...profile, weight: Number(e.target.value)})} 
-                   className="bg-muted/30 border-border/50 font-medium"
-                 />
-              </div>
-              <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Height (cm)</label>
-                 <Input 
-                   type="number"
-                   value={profile.height} 
-                   onChange={(e) => setProfile({...profile, height: Number(e.target.value)})} 
-                   className="bg-muted/30 border-border/50 font-medium"
-                 />
-              </div>
-           </div>
-           <Button 
-             className="w-full mt-6 bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-bold uppercase tracking-wider" 
-             onClick={handleSave}
-             disabled={isSaving}
-           >
-             {isSaving ? "Saving..." : "Save Profile"}
-           </Button>
-        </CardContent>
-      </Card>
-
-      {/* Integrations */}
-      <Card className="bg-card border-border/50 shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-           <div className="p-5 border-b border-border/50">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center mb-1">
-                 <Activity className="w-4 h-4 mr-2" /> Integrations
-              </h2>
-           </div>
-           
-           <div className="p-5 flex items-center justify-between bg-muted/10">
-              <div className="pr-4">
-                 <h3 className="font-bold text-foreground">Google Health Sync</h3>
-                 <p className="text-xs text-muted-foreground mt-1 leading-tight">
-                    Automatically sync your steps, calories, and body metrics.
-                 </p>
-                 {isSyncing && <p className="text-[10px] text-primary font-bold uppercase tracking-wider mt-2 animate-pulse">Authenticating...</p>}
-                 {profile.googleHealthSync && !isSyncing && <p className="text-[10px] text-primary font-bold uppercase tracking-wider mt-2 flex items-center"><LogIn className="w-3 h-3 mr-1"/> Connected</p>}
-              </div>
-              <Switch 
-                checked={profile.googleHealthSync} 
-                onCheckedChange={handleGoogleHealthToggle} 
-                disabled={isSyncing}
+      <Card className="bg-card border-border/50">
+        <CardContent className="p-4 space-y-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Name</label>
+            <Input 
+              value={profile.name} 
+              onChange={e => setProfile({...profile, name: e.target.value})} 
+              className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Age</label>
+              <Input 
+                type="number" 
+                value={profile.age} 
+                onChange={e => setProfile({...profile, age: parseInt(e.target.value) || 0})} 
+                className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
               />
-           </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Weight (kg)</label>
+              <Input 
+                type="number" 
+                value={profile.weight} 
+                onChange={e => setProfile({...profile, weight: parseInt(e.target.value) || 0})} 
+                className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Height (cm)</label>
+              <Input 
+                type="number" 
+                value={profile.height} 
+                onChange={e => setProfile({...profile, height: parseInt(e.target.value) || 0})} 
+                className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Gender</label>
+              <select 
+                value={profile.gender}
+                onChange={e => setProfile({...profile, gender: e.target.value})}
+                className="flex h-10 w-full rounded-md border border-border/50 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Not Specified">Not Specified</option>
+              </select>
+            </div>
+          </div>
+          <Button 
+            className="w-full mt-4 font-bold" 
+            onClick={handleSave} 
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> Save Profile</>}
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Library Link */}
-      <Link href="/library" className="block">
-        <Card className="bg-card border-border/50 shadow-sm hover:border-primary/50 transition-colors">
-          <CardContent className="p-5 flex items-center justify-between">
-             <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4">
-                   <Dumbbell className="w-5 h-5 text-primary" />
+      <div className="pt-4">
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-1">Integrations</h3>
+        <Card className="bg-card border-border/50 overflow-hidden">
+          <CardContent className="p-0">
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                   <h3 className="font-bold text-foreground">Exercise Library</h3>
-                   <p className="text-xs text-muted-foreground mt-0.5">Browse 100+ exercises and tutorials</p>
+                  <h4 className="font-bold text-sm">Google Health</h4>
+                  <p className="text-xs text-muted-foreground">Connected via Google Sign-In</p>
                 </div>
-             </div>
+              </div>
+              <div className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">Active</div>
+            </div>
           </CardContent>
         </Card>
-      </Link>
-      
+      </div>
+
+      <div className="pt-8 flex justify-center">
+        <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={handleSignOut}>
+          <LogOut className="w-4 h-4 mr-2" />
+          Sign Out
+        </Button>
+      </div>
     </div>
   );
 }
