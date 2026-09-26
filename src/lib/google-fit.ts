@@ -1,7 +1,15 @@
 export async function pullGoogleFitData(providerToken: string) {
-  // Pull a rolling 24-hour window to avoid UTC midnight boundary timezone issues on Vercel
+  // Use a timezone-aware calculation for the start of the day (India Standard Time UTC+5:30)
+  // This matches the user's Google Fit app exactly.
+  const now = new Date();
+  const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+  const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
+  const dateObj: any = {};
+  parts.forEach(p => dateObj[p.type] = p.value);
+  const midnightStr = `${dateObj.year}-${dateObj.month}-${dateObj.day}T00:00:00+05:30`;
+  
+  const startTimeMillis = new Date(midnightStr).getTime();
   const endTimeMillis = Date.now();
-  const startTimeMillis = endTimeMillis - 86400000; // 24 hours ago
 
   try {
     const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
