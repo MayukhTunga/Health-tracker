@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { getProfile, updateProfile, getGoogleFitBodyMetrics } from "../actions";
+import { getProfile, updateProfile } from "../actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,20 +12,21 @@ import { SyncButton } from "@/components/ui/sync-button";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
-  const [debugData, setDebugData] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getProfile().then(setProfile);
-    getGoogleFitBodyMetrics().then(setDebugData);
+    
   }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
     await updateProfile(profile);
     setIsSaving(false);
+    setIsEditing(false);
   };
 
   const handleSignOut = async () => {
@@ -101,12 +102,19 @@ export default function ProfilePage() {
         <h2 className="text-2xl font-bold">{profile.name}</h2>
       </div>
 
+      <div className="flex items-center justify-between mb-2 px-1 pt-4">
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Personal Info</h3>
+        {!isEditing ? (
+          <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="h-8 text-xs text-primary">Edit</Button>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="h-8 text-xs text-muted-foreground">Cancel</Button>
+        )}
+      </div>
       <Card className="bg-card border-border/50">
         <CardContent className="p-4 space-y-4">
           <div className="space-y-2">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Name</label>
-            <Input 
-              value={profile.name} 
+            <Input disabled={!isEditing} value={profile.name} 
               onChange={e => setProfile({...profile, name: e.target.value})} 
               className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
             />
@@ -114,18 +122,14 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Age</label>
-              <Input 
-                type="number" 
-                value={profile.age} 
+              <Input disabled={!isEditing} type="number" value={profile.age} 
                 onChange={e => setProfile({...profile, age: parseInt(e.target.value) || 0})} 
                 className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Weight (kg)</label>
-              <Input 
-                type="number" 
-                value={profile.weight} 
+              <Input disabled={!isEditing} type="number" value={profile.weight} 
                 onChange={e => setProfile({...profile, weight: parseInt(e.target.value) || 0})} 
                 className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
               />
@@ -134,17 +138,14 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Height (cm)</label>
-              <Input 
-                type="number" 
-                value={profile.height} 
+              <Input disabled={!isEditing} type="number" value={profile.height} 
                 onChange={e => setProfile({...profile, height: parseInt(e.target.value) || 0})} 
                 className="bg-background border-border/50 focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Gender</label>
-              <select 
-                value={profile.gender}
+              <select disabled={!isEditing} value={profile.gender}
                 onChange={e => setProfile({...profile, gender: e.target.value})}
                 className="flex h-10 w-full rounded-md border border-border/50 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -154,13 +155,15 @@ export default function ProfilePage() {
               </select>
             </div>
           </div>
-          <Button 
-            className="w-full mt-4 font-bold" 
-            onClick={handleSave} 
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> Save Profile</>}
-          </Button>
+          {isEditing && (
+            <Button 
+              className="w-full mt-4 font-bold" 
+              onClick={handleSave} 
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : <><Save className="w-4 h-4 mr-2" /> Save Profile</>}
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -187,15 +190,6 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {debugData?.rawDebug && (
-        <section className="bg-red-950/30 border border-red-500/50 p-4 rounded-lg overflow-hidden mt-4">
-          <h3 className="text-red-500 font-bold text-xs uppercase mb-2">API Debug Output (Body Metrics)</h3>
-          <pre className="text-[10px] text-red-200 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">
-            {debugData.rawDebug}
-          </pre>
-        </section>
-      )}
-
       <div className="pt-8 flex justify-center">
         <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={handleSignOut}>
           <LogOut className="w-4 h-4 mr-2" />
@@ -205,3 +199,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
