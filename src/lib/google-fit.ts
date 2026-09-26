@@ -115,3 +115,62 @@ export async function pushGoogleFitWeight(providerToken: string, weightKg: numbe
   }
 }
 
+export async function pullGoogleFitBodyMetrics(providerToken: string) {
+  const endTimeMillis = Date.now();
+  const startTimeMillis = endTimeMillis - (30 * 24 * 60 * 60 * 1000); // Look back 30 days for latest weight
+
+  try {
+    const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${providerToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        aggregateBy: [
+          { dataTypeName: 'com.google.weight.summary' },
+          { dataTypeName: 'com.google.height.summary' }
+        ],
+        bucketByTime: { durationMillis: (30 * 24 * 60 * 60 * 1000) },
+        startTimeMillis,
+        endTimeMillis
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to pull body metrics:', await response.text());
+      return { weight: null, height: null };
+    }
+
+    const data = await response.json();
+    let weight = null;
+    let height = null;
+
+    if (data.bucket && data.bucket.length > 0) {
+      const bucket = data.bucket[0]; // We aggregated into 1 big 30-day bucket
+      if (bucket.dataset) {
+        bucket.dataset.forEach((ds: any) => {
+          if (ds.dataSourceId.includes('weight')) {
+            // It's a summary: usually [average, max, min]. We'll take average or just the first point.
+            ds.point?.forEach((p: any) => {
+              if (p.value?.[0]?.fpVal) weight = p.value[0].fpVal;
+            });
+          } else if (ds.dataSourceId.includes('height')) {
+            ds.point?.forEach((p: any) => {
+              if (p.value?.[0]?.fpVal) height = p.value[0].fpVal * 100; // convert meters to cm
+            });
+          }
+        });
+      }
+    }
+
+    // Google Fit returns height in meters usually, weight in kg
+    if (weight) weight = Math.round(weight * 10) / 10;
+    if (height) height = Math.round(height);
+
+    return { weight, height };
+  } catch (err) {
+    console.error('Error pulling body metrics:', err);
+    return { weight: null, height: null };
+  }
+}

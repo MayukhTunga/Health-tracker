@@ -30,7 +30,39 @@ export async function getGoogleFitData() {
 }
 
 export async function forceSyncGoogleFit() {
+  const { supabase, userId, providerToken } = await getUserInfo();
+  
+  if (providerToken) {
+    // 1. Pull Google Fit Body Metrics (Weight & Height)
+    const { pullGoogleFitBodyMetrics } = await import('@/lib/google-fit');
+    const fitMetrics = await pullGoogleFitBodyMetrics(providerToken);
+    
+    // 2. Fetch current user profile
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('weight, height')
+      .eq('id', userId)
+      .single();
+      
+    // 3. Compare and Update if needed
+    const updates: any = {};
+    if (fitMetrics.weight && currentProfile?.weight !== fitMetrics.weight) {
+      updates.weight = fitMetrics.weight;
+    }
+    if (fitMetrics.height && currentProfile?.height !== fitMetrics.height) {
+      updates.height = fitMetrics.height;
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId);
+    }
+  }
+
   revalidatePath('/');
+  revalidatePath('/profile');
 }
 
 // --- Profiles ---
