@@ -6,14 +6,14 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabasePrivateKey = process.env.SUPABASE_PRIVATE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing Supabase credentials in .env.local");
+if (!supabaseUrl || !supabasePrivateKey) {
+  console.error("Missing Supabase credentials in .env.local (Make sure SUPABASE_PRIVATE_KEY is set)");
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabasePrivateKey);
 
 async function seedExercises() {
   const filePath = path.join(process.cwd(), 'data', 'exercises.json');
