@@ -12,12 +12,14 @@ async function getUserInfo() {
 }
 
 // --- Sync ---
-export async function syncGoogleFit() {
+export async function getGoogleFitData() {
   const { providerToken } = await getUserInfo();
   if (!providerToken) return { steps: 0, calories: 0 };
-  const data = await pullGoogleFitData(providerToken);
+  return await pullGoogleFitData(providerToken);
+}
+
+export async function forceSyncGoogleFit() {
   revalidatePath('/');
-  return data;
 }
 
 // --- Profiles ---

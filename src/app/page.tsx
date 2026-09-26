@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { getWorkouts, syncGoogleFit } from "./actions";
+import { getWorkouts, getGoogleFitData } from "./actions";
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { WeeklyCalendar } from "@/components/ui/weekly-calendar";
 import { RecentWorkoutsList } from "@/components/ui/recent-workouts";
@@ -25,7 +25,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
   // Parallel fetching! getWorkouts uses a JOIN now, so it's super fast.
   const [allWorkouts, fitData] = await Promise.all([
     getWorkouts(),
-    syncGoogleFit()
+    getGoogleFitData()
   ]);
   
   const todaysWorkouts = allWorkouts.filter((w: any) => new Date(w.date).toDateString() === selectedDateString);

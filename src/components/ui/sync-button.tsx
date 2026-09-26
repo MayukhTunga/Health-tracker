@@ -3,14 +3,14 @@
 import { Button } from "./button";
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { syncGoogleFit } from "@/app/actions";
+import { forceSyncGoogleFit } from "@/app/actions";
 
 export function SyncButton() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSync = async () => {
     setIsSyncing(true);
-    await syncGoogleFit();
+    await forceSyncGoogleFit();
     setIsSyncing(false);
   };
 
