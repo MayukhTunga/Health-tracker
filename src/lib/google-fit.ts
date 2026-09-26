@@ -9,7 +9,9 @@ export async function pullGoogleFitData(providerToken: string) {
   const midnightStr = `${dateObj.year}-${dateObj.month}-${dateObj.day}T00:00:00+05:30`;
   
   const startTimeMillis = new Date(midnightStr).getTime();
-  const endTimeMillis = Date.now();
+  // Google Fit bucketByTime: { durationMillis: 86400000 } requires the window to be exactly 24 hours long 
+  // or else it might drop the bucket entirely if it's incomplete!
+  const endTimeMillis = startTimeMillis + 86400000;
 
   try {
     const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {

@@ -10,6 +10,8 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const errorMessage = searchParams.get('message');
+  const reason = searchParams.get('reason');
+  const from = searchParams.get('from');
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -43,6 +45,14 @@ function LoginContent() {
       {errorMessage && (
         <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-lg mt-4">
           {decodeURIComponent(errorMessage)}
+        </div>
+      )}
+
+      {(reason || from) && (
+        <div className="bg-orange-500/10 border border-orange-500/50 text-orange-500 text-xs p-3 rounded-lg mt-4 text-left font-mono">
+          <strong>DIAGNOSTIC REDIRECT TRACE:</strong><br/>
+          Reason: {reason || 'none'}<br/>
+          From: {from || 'unknown'}
         </div>
       )}
 

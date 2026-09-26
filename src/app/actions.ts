@@ -12,7 +12,7 @@ async function getUserInfo() {
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session?.user) {
-    redirect('/login');
+    redirect('/login?reason=actions_no_user');
   }
   
   // Read custom google_provider_token cookie if not in session
@@ -40,7 +40,7 @@ export async function getProfile() {
   
   // If the user session is invalid or expired, redirect to login
   if (userError || !user) {
-    redirect('/login');
+    redirect('/login?reason=getProfile_no_user');
   }
   const userId = user.id;
   

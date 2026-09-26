@@ -40,10 +40,12 @@ export async function updateSession(request: NextRequest) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.searchParams.set('reason', 'middleware_no_user')
+    url.searchParams.set('from', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
   
-  if (user && isPublicRoute) {
+  if (user && isPublicRoute && request.nextUrl.pathname === '/login') {
     // user is already logged in, redirect away from login page
     const url = request.nextUrl.clone()
     url.pathname = '/'
