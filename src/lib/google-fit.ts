@@ -57,9 +57,8 @@ export async function pullGoogleFitData(providerToken: string) {
     calories = Math.round(calories);
 
     return { steps, calories, rawDebug: 'Success JSON: ' + JSON.stringify(data) };
-  } catch (err) {
-    return { steps: 0, calories: 0, rawDebug: 'Exception: ' + err.message };
-    return { steps: 0, calories: 0, rawDebug: 'Failed: ' + (await response.text()) };
+  } catch (err: any) {
+    return { steps: 0, calories: 0, rawDebug: 'Exception: ' + err?.message };
   }
 }
 
