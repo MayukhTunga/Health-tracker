@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   description: "Track your workouts and sync with Google Health",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
   },
 };
 
@@ -45,6 +45,24 @@ export default async function RootLayout({
           {children}
         </main>
         {user && <MobileNav />}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('ServiceWorker registration successful');
+                    },
+                    function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    }
+                  );
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
