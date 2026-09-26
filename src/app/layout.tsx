@@ -9,10 +9,14 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "GymTracker Mobile",
   description: "Track your workouts and sync with Google Health",
-  manifest: "/manifest.json",
   icons: {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'GymTracker',
   },
 };
 
@@ -39,6 +43,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json?v=3" />
+      </head>
       <body className={`${inter.className} min-h-screen bg-background antialiased flex flex-col`} suppressHydrationWarning>
         {user && <TopHeader avatarUrl={avatarUrl} />}
         <main className="flex-1 pb-16 sm:pb-0">
