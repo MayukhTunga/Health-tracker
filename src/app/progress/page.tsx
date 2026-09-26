@@ -9,7 +9,7 @@ export default async function ProgressPage() {
   
   // Group by exercise
   const exerciseMap: Record<string, {
-    sessions: Record<string, any[]>
+    sessions: Record<string, { date: string, sets: any[] }>
   }> = {};
   
   allWorkouts.forEach((w: any) => {

@@ -58,8 +58,8 @@ export function Sparkline({ data }: { data: number[] }) {
             contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
             itemStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
             labelStyle={{ color: 'hsl(var(--muted-foreground))', marginBottom: '2px' }}
-            formatter={(value: number) => [`${value} kg`, 'Est 1RM']}
-            labelFormatter={(label) => label === "T - 0" ? "Latest Session" : `${label.replace('T - ', '')} sessions ago`}
+            formatter={(value: any) => [`${value} kg`, 'Est 1RM']}
+            labelFormatter={(label: any) => label === "T - 0" ? "Latest Session" : `${(label || "").toString().replace('T - ', '')} sessions ago`}
           />
           <Line 
             type="monotone" 
