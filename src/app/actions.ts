@@ -5,11 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { pullGoogleFitData, pushGoogleFitWeight } from "@/lib/google-fit";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 async function getUserInfo() { 
   const supabase = await createClient(); 
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) throw new Error('Unauthorized'); 
+  
+  if (!session?.user) {
+    redirect('/login');
+  }
   
   // Read custom google_provider_token cookie if not in session
   const cookieStore = await cookies();
@@ -32,8 +36,12 @@ export async function forceSyncGoogleFit() {
 // --- Profiles ---
 export async function getProfile() {
   const supabaseServer = await createClient(); 
-  const { data: { user } } = await supabaseServer.auth.getUser(); 
-  if (!user) throw new Error('Unauthorized'); 
+  const { data: { user }, error: userError } = await supabaseServer.auth.getUser(); 
+  
+  // If the user session is invalid or expired, redirect to login
+  if (userError || !user) {
+    redirect('/login');
+  }
   const userId = user.id;
   
   const { data, error } = await supabaseServer
