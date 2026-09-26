@@ -4,11 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { pullGoogleFitData, pushGoogleFitWeight } from "@/lib/google-fit";
 
+import { cookies } from "next/headers";
+
 async function getUserInfo() { 
   const supabase = await createClient(); 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) throw new Error('Unauthorized'); 
-  return { supabase, userId: session.user.id, providerToken: session.provider_token }; 
+  
+  // Read custom google_provider_token cookie if not in session
+  const cookieStore = await cookies();
+  const providerToken = session.provider_token || cookieStore.get('google_provider_token')?.value;
+  
+  return { supabase, userId: session.user.id, providerToken }; 
 }
 
 // --- Sync ---
